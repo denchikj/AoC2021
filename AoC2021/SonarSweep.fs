@@ -19,7 +19,7 @@ let example =
 
 let isIncreases (x, y) = x < y
 
-let exp = 
+let exp =
     example.Split("\n")
     |> Seq.map int
     |> Seq.pairwise
