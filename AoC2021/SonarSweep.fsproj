@@ -7,7 +7,7 @@
 
   <ItemGroup>
     <Content Include="input.txt" />
-    <Compile Include="part1.fs" />
+    <Compile Include="SonarSweep.fs" />
   </ItemGroup>
 
   <ItemGroup />

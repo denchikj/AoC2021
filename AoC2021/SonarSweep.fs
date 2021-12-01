@@ -32,3 +32,12 @@ let res1 =
     |> Seq.pairwise
     |> Seq.filter isIncreases
     |> Seq.length
+
+let res2 =
+    input
+    |> Seq.map int
+    |> Seq.windowed 3
+    |> Seq.map Seq.sum
+    |> Seq.pairwise
+    |> Seq.filter isIncreases
+    |> Seq.length
