@@ -6,10 +6,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="part2.fs" />
     <Content Include="input.txt" />
     <Compile Include="BinaryDiagnostic.fs" />
   </ItemGroup>
-
-  <ItemGroup />
 
 </Project>
