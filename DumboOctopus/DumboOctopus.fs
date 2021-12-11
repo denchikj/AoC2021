@@ -2,7 +2,8 @@
 
 open System
 
-let input = IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\input.txt"
+let input =
+    IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\input.txt"
 
 type Location = (int * int)
 type EnergyLevel = int
@@ -31,7 +32,7 @@ let increaseEnergyLevelAt (grid: Grid) (loc: Location) : Grid =
     grid |> Map.add loc (currentLevel + 1)
 
 let takeStep grid =
-    let rec resolveFlashes nbFlashes highlighted grid =
+    let rec resolveFlashes highlighted grid =
         let nextOctupusToFlash =
             grid
             |> Map.toList
@@ -50,7 +51,7 @@ let takeStep grid =
                         else
                             level)
 
-            resetGrid, nbFlashes
+            resetGrid
         | Some (loc, _) ->
             //An octopus flashes!
             let neighbours = findNeighbours grid loc
@@ -58,19 +59,19 @@ let takeStep grid =
             let gridWithIncreasedNeighbours =
                 neighbours |> List.fold increaseEnergyLevelAt grid
 
-            resolveFlashes (nbFlashes + 1) (highlighted |> Set.add loc) gridWithIncreasedNeighbours
+            resolveFlashes (highlighted |> Set.add loc) gridWithIncreasedNeighbours
 
     grid
     |> Map.map (fun _ level -> level + 1)
-    |> resolveFlashes 0 Set.empty
+    |> resolveFlashes Set.empty
 
-let rec repeat n nbFlashes grid =
-    if n = 0 then
-        nbFlashes
+let rec repeat n grid =
+    if grid |> Map.forall (fun _ level -> level = 0) then
+        n
     else
-        let nextGrid, nnbFlashes = grid |> takeStep
-        repeat (n - 1) (nbFlashes + nnbFlashes) nextGrid
+        let nextGrid = grid |> takeStep
+        repeat (n + 1) nextGrid
 
 let grid = parse input
 
-repeat 100 0 grid
+repeat 0 grid
