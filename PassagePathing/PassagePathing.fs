@@ -60,3 +60,42 @@ let bfs part1 (connections: Connection []) =
 let solve =
     input |> Array.map parse |> bfs getNextPaths
 
+let part2 (connections: Connection []) path =
+    let pos = List.last path
+    let visitedSmallCaves = path |> List.filter isSmallCave
+
+    let smallCaveVisits =
+        visitedSmallCaves |> List.countBy id |> Map.ofList
+
+    let smallCaveVisitedTwice =
+        visitedSmallCaves
+        |> Set.ofList
+        |> fun s -> s.Count < visitedSmallCaves.Length
+
+    let neighbours =
+        connections
+        |> Array.filter (fun c -> c.Cave1 = pos || c.Cave2 = pos)
+        |> Array.map
+            (fun c ->
+                if c.Cave1 = pos then
+                    c.Cave2
+                else
+                    c.Cave1)
+        |> Array.filter
+            (fun c ->
+                match c with
+                | "start" -> false
+                | _ when isSmallCave c ->
+                    let alreadyVisited = visitedSmallCaves |> List.contains c
+
+                    if alreadyVisited then
+                        smallCaveVisits.[c] < 2
+                        && not smallCaveVisitedTwice
+                    else
+                        true
+                | _ -> true)
+
+    neighbours
+    |> Array.map (fun n -> List.append path [ n ])
+
+let solve2 = input |> Array.map parse |> bfs part2
