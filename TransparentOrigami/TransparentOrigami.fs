@@ -24,7 +24,7 @@ let parseInstruction (line: string) =
     | "y" -> FoldY <| int line
     | unknown -> failwithf "Unknown fold instruction: <%s> in <%s>" unknown line
 
-let parse input =
+let parse input : (Paper * FoldInstruction []) =
     let pointTexts = input |> Array.takeWhile ((<>) "")
 
     let instructionTexts =
@@ -32,7 +32,7 @@ let parse input =
         |> Array.skip (pointTexts |> Seq.length |> (+) 1)
 
     let points =
-        pointTexts |> Array.map parsePoint |> Set.ofSeq
+        pointTexts |> Array.map parsePoint |> set
 
     let instructions =
         instructionTexts |> Array.map parseInstruction
@@ -58,7 +58,28 @@ let fold paper instruction =
     | FoldX length -> paper |> Set.map (foldX length)
     | FoldY length -> paper |> Set.map (foldY length)
 
-let (paper, instructions) = parse input
+let print paper =
+    let maxX = paper |> Seq.map fst |> Seq.max
+    let maxY = paper |> Seq.map snd |> Seq.max
 
-let part1 =
-    fold paper (instructions.[0]) |> Seq.length
+    [ for y in 0 .. maxY do
+          [ for x in 0 .. maxX ->
+                if paper |> Set.contains (x, y) then
+                    printf "#"
+                else
+                    printf "." ]
+
+          printfn "" ]
+
+let (paper, instructions) = parse input
+let fullyFoldedPaper = instructions |> Seq.fold fold paper
+print fullyFoldedPaper
+
+(*
+####..##..#..#.#..#.###..####..##..###.
+#....#..#.#..#.#.#..#..#.#....#..#.#..#
+###..#..#.####.##...#..#.###..#....#..#
+#....####.#..#.#.#..###..#....#....###.
+#....#..#.#..#.#.#..#.#..#....#..#.#...
+####.#..#.#..#.#..#.#..#.####..##..#...
+*)
