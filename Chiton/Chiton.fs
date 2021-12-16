@@ -1,80 +1,95 @@
 ﻿module Chiton
 
-let input = System.IO.File.ReadAllLines "input.txt"
+open System.IO
 
-let parse input =
-    [ for row in input do
-          [ for col in row -> col |> string |> int ] ]
+let fileName = File.ReadAllLines "input.txt" |> Seq.cast<string> |> Seq.map (fun l -> l.Trim())
+
+let riskLevelArray =
+    fileName |> Seq.map (
+        fun l -> l.ToCharArray() |> Seq.map (fun c -> int c - int '0') )
     |> array2D
 
-let neighbours cave (x, y) =
-    [ if x > 0 then yield (x - 1, y)
-      if x < ((cave |> Array2D.length1) - 1) then
-          yield (x + 1, y)
-      if y > 0 then yield (x, y - 1)
-      if y < ((cave |> Array2D.length1) - 1) then
-          yield (x, y + 1) ]
+type Path = int * List<int * int>
 
+let endOf (riskLevels : int[,]) = (riskLevels.GetLength(0)-1, riskLevels.GetLength(1)-1)
 
-let updateBestDistance distances (location, altDistance) =
-    let currentBest = distances |> Map.find location
+let isAtEnd (riskLevels : int[,]) (path : Path) =
+    let (_, cs) = path
+    let lc = Seq.head cs
+    lc = endOf riskLevels
 
-    if altDistance < currentBest then
-        distances |> Map.add location altDistance
+let generatePaths (riskLevels : int[,]) (path : Path) =
+    let (s, cs) = path
+    let lc = List.head cs
+    let (lc0, lc1) = lc
+    let ncs =
+        seq {
+           (lc0-1,lc1)
+           (lc0+1,lc1)
+           (lc0,lc1-1)
+           (lc0,lc1+1) }
+        |> Seq.filter (
+            fun (c0, c1) ->
+                c0 >= 0 && c0 < riskLevels.GetLength(0) &&
+                c1 >= 0 && c1 < riskLevels.GetLength(1) )
+    ncs
+        |> Seq.map (fun nc ->
+            Path(s + riskLevels[fst nc, snd nc], nc :: cs) )
+        |> List.ofSeq
+
+let keepBestPaths (riskLevels : int[,]) (bestScores : Map<(int * int),int>) (paths : List<Path>) =
+    paths
+        |> List.groupBy (fun (_, cs) -> cs |> List.head)
+        |> List.map (fun (_, ps) -> ps |> List.sortBy fst |> List.head)
+        |> List.filter (fun (s, cs) ->
+            let last = cs |> List.head
+            let maybeBest = Map.tryFind last bestScores
+            match maybeBest with
+            | Some best -> s < best
+            | None -> true )
+
+let updateBestScores (bestScores : Map<(int * int),int>) (keptPaths : List<Path>) =
+    let betterScores =
+        keptPaths
+            |> Seq.map (fun (s, cs) -> (List.head cs, s))
+            |> Map.ofSeq
+    Map.fold (fun acc key value -> Map.add key value acc) bestScores betterScores
+
+let rec search (riskLevels : int[,]) (currentPaths : List<Path>) (bestScores : Map<(int * int),int>) =
+    if List.isEmpty currentPaths then
+        match Map.tryFind (endOf riskLevels) bestScores with
+        | Some score -> score
+        | None -> failwith "ran out of paths before finding end"
     else
-        distances
+        let currentPaths' =
+            currentPaths
+                |> List.collect (generatePaths riskLevels)
+                |> keepBestPaths riskLevels bestScores
+        let bestScores' = updateBestScores bestScores currentPaths'
+        search riskLevels currentPaths' bestScores'
 
-let rec shortestPaths cave target workingList distances =
-    printfn "We still have to process %d locations" (workingList |> Set.count)
+let partOne =
+    let currentPaths = [ Path(0, [(0,0)]) ]
+    let bestScores = seq { ((0,0), 0) } |> Map.ofSeq
+    search riskLevelArray currentPaths bestScores
 
-    if workingList |> Set.isEmpty then
-        distances
-    else
-        let currentLocation, distanceCurrentLocation =
-            workingList
-            |> Set.map (fun location -> location, distances |> Map.find location)
-            |> Seq.minBy snd
+printfn $"""partOne=%A{partOne}"""
 
-        if currentLocation = target then
-            distances
-        else
-            let updatedWorkingList =
-                workingList |> Set.remove currentLocation
+let giantRiskLevelArray =
+    let l0 = riskLevelArray.GetLength(0)
+    let l1 = riskLevelArray.GetLength(1)
+    Array2D.init (l0 * 5) (l1 * 5) (
+        fun i j ->
+            let ri = i % l0
+            let rj = j % l1
+            let di = i / l0
+            let dj = j / l1
+            let original = riskLevelArray[ri, rj]
+            1 + (original + di + dj - 1) % 9 )
 
-            let updatedDistances =
-                currentLocation
-                |> neighbours cave
-                |> List.map (fun (x, y) -> (x, y), (distanceCurrentLocation + (cave.[x, y])))
-                |> List.fold updateBestDistance distances
+let partTwo =
+    let currentPaths = [ Path(0, [(0,0)]) ]
+    let bestScores = seq { ((0,0), 0) } |> Map.ofSeq
+    search giantRiskLevelArray currentPaths bestScores
 
-            shortestPaths cave target updatedWorkingList updatedDistances
-
-let solve input =
-    let cave = parse input
-
-    let dimension = (cave |> Array2D.length1) - 1
-
-    let workingList =
-        [ for x in 0 .. dimension do
-              for y in 0 .. dimension -> (x, y) ]
-        |> Set.ofList
-
-    let distances =
-        workingList
-        |> Seq.map
-            (fun coord ->
-                if coord = (0, 0) then
-                    coord, 0
-                else
-                    coord, System.Int32.MaxValue)
-        |> Map.ofSeq
-
-    let target = (dimension, dimension)
-
-    let shortestDistances =
-        shortestPaths cave target workingList distances
-
-    let shortestDistanceToTarget = shortestDistances |> Map.find target
-    shortestDistanceToTarget
-
-solve input
+printfn $"""partTwo=%A{partTwo}"""
