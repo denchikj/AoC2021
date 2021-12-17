@@ -63,8 +63,18 @@ let vectors =
     [ for x in 1 .. (target.X.Max) do
           for y in 1 .. 1000 -> { X = x; Y = y } ]
 
+let vectors2 =
+    [ for x in 1 .. (target.X.Max) do
+          for y in (target.Y.Max - 100) .. 1000 -> { X = x; Y = y } ]
+
 let part1 =
     vectors
     |> List.choose (hitsTarget target)
     |> List.maxBy (fun (v, _) -> v.Y)
     |> snd
+
+let part2 =
+    vectors2
+    |> List.choose (hitsTarget target)
+    |> Set.ofList
+    |> Seq.length
