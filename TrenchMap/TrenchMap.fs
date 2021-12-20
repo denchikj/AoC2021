@@ -8,6 +8,12 @@ type State =
       image: Image
       infinitePixelsState: char }
 
+let shrink (s: State) : State =
+    { s with
+          image =
+              s.image
+              |> Map.filter (fun k v -> v <> s.infinitePixelsState) }
+
 let parse (text: string []) : State =
     let algorithm = text.[0] |> Seq.toArray
 
@@ -19,6 +25,7 @@ let parse (text: string []) : State =
     { algorithm = algorithm
       image = image
       infinitePixelsState = '.' }
+    |> shrink
 
 let neighbourLocations (r, c) =
     [ (-1, -1)
@@ -80,6 +87,7 @@ let enhance state =
     { state with
           image = nextImage
           infinitePixelsState = nextInfinite state }
+    |> shrink
 
 let print (state: State) : string =
     let image = state.image
@@ -103,6 +111,12 @@ let print (state: State) : string =
           |> String.concat "" ]
     |> String.concat "\n"
 
+let rec repeatEnhance n state =
+    if n = 0 then
+        state
+    else
+        repeatEnhance (n - 1) (enhance state)
+
 let input =
     System.IO.File.ReadAllLines $"{__SOURCE_DIRECTORY__}\input.txt"
 
@@ -112,5 +126,12 @@ let enhancedTwice = enhancedOnce |> enhance
 
 let part1 =
     enhancedTwice.image
+    |> Map.filter (fun k v -> v = '#')
+    |> Map.count
+
+let enhanced = state |> repeatEnhance 50
+
+let part2 =
+    enhanced.image
     |> Map.filter (fun k v -> v = '#')
     |> Map.count
